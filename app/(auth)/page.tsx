@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { calculateBalance, formatCurrency } from "@/lib/balance"
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card"
 import Link from "next/link"
 
@@ -19,10 +20,11 @@ export default async function Dashboard() {
   })
 
   const customersWithBalance = customers.map((c) => ({
-    ...c,
-    balance: c.transactions.reduce((acc, t) => {
-      return t.type === "credit" ? acc + Number(t.amount) : acc - Number(t.amount)
-    }, 0),
+    id: c.id,
+    name: c.name,
+    phone: c.phone,
+    createdAt: c.createdAt.toISOString(),
+    balance: calculateBalance(c.transactions),
   }))
 
   const totalDebt = customersWithBalance.reduce(
@@ -43,7 +45,7 @@ export default async function Dashboard() {
         <Card>
           <CardTitle>Total a Receber</CardTitle>
           <p className="mt-2 text-3xl font-bold text-red-600">
-            R$ {totalDebt.toFixed(2)}
+            {formatCurrency(totalDebt)}
           </p>
         </Card>
         <Card>
@@ -86,13 +88,13 @@ export default async function Dashboard() {
                     : "text-green-500"
                 }`}
               >
-                R$ {customer.balance.toFixed(2)}
+                {formatCurrency(customer.balance)}
               </span>
             </Link>
           ))}
           {customersWithBalance.length === 0 && (
             <p className="py-6 text-center text-sm text-zinc-500">
-              Nenhum cliente cadastrado ainda.{ " " }
+              Nenhum cliente cadastrado ainda.{" "}
               <Link href="/customers/new" className="text-emerald-600 hover:underline">
                 Cadastrar primeiro cliente
               </Link>

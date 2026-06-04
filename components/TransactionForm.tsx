@@ -5,33 +5,30 @@ import { useRouter } from "next/navigation"
 import { Input } from "./ui/Input"
 import { Button } from "./ui/Button"
 import { CustomerSearch } from "./CustomerSearch"
+import { CustomerWithBalance } from "@/lib/types"
+import { formatCurrency } from "@/lib/balance"
 import { toast } from "sonner"
-
-interface Customer {
-  id: number
-  name: string
-  phone: string | null
-  balance: number
-}
 
 export function TransactionForm() {
   const router = useRouter()
-  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [customer, setCustomer] = useState<CustomerWithBalance | null>(null)
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [loading, setLoading] = useState(false)
 
+  function validate(): string | null {
+    if (!customer) return "Selecione um cliente"
+    if (!amount || Number(amount) <= 0) return "Informe um valor válido"
+    return null
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!customer) {
-      toast.error("Selecione um cliente")
-      return
-    }
-
-    if (!amount || Number(amount) <= 0) {
-      toast.error("Informe um valor válido")
+    const error = validate()
+    if (error) {
+      toast.error(error)
       return
     }
 
@@ -42,9 +39,9 @@ export function TransactionForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerId: customer.id,
+          customerId: customer!.id,
           amount: Number(amount),
-          description: description.trim() || "Compras diversas",
+          description: description.trim() || undefined,
           date: date || undefined,
         }),
       })
@@ -55,8 +52,8 @@ export function TransactionForm() {
         throw new Error(data.error || "Erro ao registrar compra")
       }
 
-      toast.success(`Compra de R$ ${Number(amount).toFixed(2)} registrada para ${customer.name}!`)
-      router.push(`/customers/${customer.id}`)
+      toast.success(`Compra de ${formatCurrency(Number(amount))} registrada para ${customer!.name}!`)
+      router.push(`/customers/${customer!.id}`)
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao registrar")

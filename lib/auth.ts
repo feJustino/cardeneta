@@ -3,22 +3,27 @@ import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "./prisma"
 
+function getEnvOrThrow(key: string): string {
+  const value = process.env[key]
+  if (!value) {
+    throw new Error(`Variável de ambiente ${key} não configurada`)
+  }
+  return value
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: getEnvOrThrow("GOOGLE_CLIENT_ID"),
+      clientSecret: getEnvOrThrow("GOOGLE_CLIENT_SECRET"),
     }),
   ],
   callbacks: {
-    async signIn({ account, profile }) {
+    async signIn({ profile }) {
       const allowedEmail = process.env.ADMIN_EMAIL
       if (!allowedEmail) return false
-      if (account?.provider === "google" && allowedEmail.includes( profile?.email || "")) {
-        return true
-      }
-      return false
+      return profile?.email === allowedEmail
     },
   },
   pages: {

@@ -1,56 +1,59 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { calculateBalance, formatCurrency } from "@/lib/balance"
+import { TRANSACTION_TYPE, PAYMENT_DESCRIPTION } from "@/lib/constants"
+import {
+  handleApiError,
+  getSessionOrThrow,
+  ValidationError,
+  NotFoundError,
+} from "@/lib/api"
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  try {
+    await getSessionOrThrow()
 
-  const body = await request.json()
+    const body = await request.json()
 
-  if (!body.customerId || !body.amount || Number(body.amount) <= 0) {
-    return NextResponse.json(
-      { error: "Cliente e valor válido são obrigatórios" },
-      { status: 400 }
-    )
-  }
+    if (!body.customerId || !body.amount || Number(body.amount) <= 0) {
+      throw new ValidationError("Cliente e valor válido são obrigatórios")
+    }
 
-  const customer = await prisma.customer.findUnique({
-    where: { id: Number(body.customerId) },
-    include: {
-      transactions: {
-        select: { amount: true, type: true },
+    const customer = await prisma.customer.findUnique({
+      where: { id: Number(body.customerId) },
+      include: {
+        transactions: {
+          select: { amount: true, type: true },
+        },
       },
-    },
-  })
+    })
 
-  if (!customer) {
-    return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 })
-  }
+    if (!customer) throw new NotFoundError("Cliente")
 
-  const currentBalance = customer.transactions.reduce((acc, t) => {
-    return t.type === "credit" ? acc + Number(t.amount) : acc - Number(t.amount)
-  }, 0)
+    const currentBalance = calculateBalance(customer.transactions)
+    const paymentAmount = Number(body.amount)
 
-  if (Number(body.amount) > currentBalance) {
-    return NextResponse.json(
-      {
-        error: `Valor do pagamento (R$ ${Number(body.amount).toFixed(2)}) excede o saldo devedor (R$ ${currentBalance.toFixed(2)})`,
+    if (paymentAmount > currentBalance) {
+      return NextResponse.json(
+        {
+          error: `Valor do pagamento (${formatCurrency(paymentAmount)}) excede o saldo devedor (${formatCurrency(currentBalance)})`,
+        },
+        { status: 400 }
+      )
+    }
+
+    const payment = await prisma.transaction.create({
+      data: {
+        customerId: Number(body.customerId),
+        type: TRANSACTION_TYPE.PAYMENT,
+        amount: paymentAmount,
+        description: PAYMENT_DESCRIPTION,
+        date: body.date ? new Date(body.date) : new Date(),
       },
-      { status: 400 }
-    )
+    })
+
+    return NextResponse.json(payment, { status: 201 })
+  } catch (error) {
+    return handleApiError(error)
   }
-
-  const payment = await prisma.transaction.create({
-    data: {
-      customerId: Number(body.customerId),
-      type: "payment",
-      amount: Number(body.amount),
-      description: "Pagamento",
-      date: body.date ? new Date(body.date) : new Date(),
-    },
-  })
-
-  return NextResponse.json(payment, { status: 201 })
 }

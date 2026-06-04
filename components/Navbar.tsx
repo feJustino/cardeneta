@@ -4,16 +4,31 @@ import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+const NAV_LINKS = [
+  { href: "/", label: "Dashboard" },
+  { href: "/customers", label: "Clientes" },
+  { href: "/transactions/new", label: "Nova Compra" },
+  { href: "/payments/new", label: "Novo Pagamento" },
+] as const
+
+function NavLink({ href, label, isActive }: { href: string; label: string; isActive: boolean }) {
+  const base = "rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+  const activeClass = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+  const inactiveClass = "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+
+  return (
+    <Link
+      href={href}
+      className={`${base} ${isActive ? activeClass : inactiveClass}`}
+    >
+      {label}
+    </Link>
+  )
+}
+
 export function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
-
-  const links = [
-    { href: "/", label: "Dashboard" },
-    { href: "/customers", label: "Clientes" },
-    { href: "/transactions/new", label: "Nova Compra" },
-    { href: "/payments/new", label: "Novo Pagamento" },
-  ]
 
   if (!session) return null
 
@@ -25,18 +40,13 @@ export function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-1 sm:flex">
-          {links.map((link) => (
-            <Link
+          {NAV_LINKS.map((link) => (
+            <NavLink
               key={link.href}
               href={link.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                pathname === link.href
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                  : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              }`}
-            >
-              {link.label}
-            </Link>
+              label={link.label}
+              isActive={pathname === link.href}
+            />
           ))}
         </div>
 
@@ -54,18 +64,13 @@ export function Navbar() {
       </div>
 
       <div className="flex gap-1 overflow-x-auto px-4 pb-3 sm:hidden">
-        {links.map((link) => (
-          <Link
+        {NAV_LINKS.map((link) => (
+          <NavLink
             key={link.href}
             href={link.href}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname === link.href
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            }`}
-          >
-            {link.label}
-          </Link>
+            label={link.label}
+            isActive={pathname === link.href}
+          />
         ))}
       </div>
     </nav>

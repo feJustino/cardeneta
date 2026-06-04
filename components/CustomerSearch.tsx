@@ -1,24 +1,19 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-
-interface Customer {
-  id: number
-  name: string
-  phone: string | null
-  balance: number
-}
+import { useState, useEffect, useRef, useCallback } from "react"
+import { CustomerWithBalance } from "@/lib/types"
+import { formatCurrency } from "@/lib/balance"
 
 interface CustomerSearchProps {
-  onSelect: (customer: Customer) => void
+  onSelect: (customer: CustomerWithBalance) => void
   placeholder?: string
 }
 
 export function CustomerSearch({ onSelect, placeholder = "Buscar cliente..." }: CustomerSearchProps) {
   const [query, setQuery] = useState("")
-  const [results, setResults] = useState<Customer[]>([])
+  const [results, setResults] = useState<CustomerWithBalance[]>([])
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Customer | null>(null)
+  const [selected, setSelected] = useState<CustomerWithBalance | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,18 +26,20 @@ export function CustomerSearch({ onSelect, placeholder = "Buscar cliente..." }: 
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  const fetchResults = useCallback(async (q: string) => {
+    const res = await fetch(`/api/customers?search=${encodeURIComponent(q)}`)
+    const data = await res.json()
+    setResults(data)
+    setOpen(true)
+  }, [])
+
   useEffect(() => {
     if (query.length < 1) return
-    const timer = setTimeout(async () => {
-      const res = await fetch(`/api/customers?search=${encodeURIComponent(query)}`)
-      const data = await res.json()
-      setResults(data)
-      setOpen(true)
-    }, 300)
+    const timer = setTimeout(() => fetchResults(query), 300)
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, fetchResults])
 
-  function handleSelect(customer: Customer) {
+  function handleSelect(customer: CustomerWithBalance) {
     setSelected(customer)
     setQuery(customer.name)
     setOpen(false)
@@ -64,7 +61,7 @@ export function CustomerSearch({ onSelect, placeholder = "Buscar cliente..." }: 
               {selected.name}
             </p>
             <p className="text-xs text-zinc-500">
-              Saldo: R$ {selected.balance.toFixed(2)}
+              Saldo: {formatCurrency(selected.balance)}
             </p>
           </div>
           <button
@@ -105,7 +102,7 @@ export function CustomerSearch({ onSelect, placeholder = "Buscar cliente..." }: 
                     : "text-green-500"
                 }`}
               >
-                R$ {customer.balance.toFixed(2)}
+                {formatCurrency(customer.balance)}
               </span>
             </button>
           ))}

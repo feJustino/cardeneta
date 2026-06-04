@@ -2,17 +2,11 @@
 
 import { useState } from "react"
 import Link from "next/link"
-
-interface Customer {
-  id: number
-  name: string
-  phone: string | null
-  balance: number
-  createdAt: string
-}
+import { CustomerWithBalance } from "@/lib/types"
+import { formatCurrency } from "@/lib/balance"
 
 interface Props {
-  customers: Customer[]
+  customers: CustomerWithBalance[]
 }
 
 export function CustomerListClient({ customers }: Props) {
@@ -57,7 +51,7 @@ export function CustomerListClient({ customers }: Props) {
                     : "text-green-500"
                 }`}
               >
-                R$ {customer.balance.toFixed(2)}
+                {formatCurrency(customer.balance)}
               </p>
               <p className="text-xs text-zinc-400">
                 {customer.balance > 0 ? "em débito" : "quitado"}

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { calculateBalance } from "@/lib/balance"
 import { Card } from "@/components/ui/Card"
 import Link from "next/link"
 import { CustomerListClient } from "./CustomerListClient"
@@ -6,7 +7,6 @@ import { CustomerListClient } from "./CustomerListClient"
 export const dynamic = "force-dynamic"
 
 export default async function CustomersPage() {
-
   const customers = await prisma.customer.findMany({
     include: {
       transactions: {
@@ -16,14 +16,12 @@ export default async function CustomersPage() {
     orderBy: { name: "asc" },
   })
 
-  const customersWithBalance = customers.map((c: any) => ({
+  const customersWithBalance = customers.map((c) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,
-    balance: c.transactions.reduce((acc: number, t: { type: string; amount: any }) => {
-      return t.type === "credit" ? acc + Number(t.amount) : acc - Number(t.amount)
-    }, 0),
     createdAt: c.createdAt.toISOString(),
+    balance: calculateBalance(c.transactions),
   }))
 
   return (

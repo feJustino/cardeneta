@@ -5,28 +5,25 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
+import { formatCurrency } from "@/lib/balance"
+import { TRANSACTION_TYPE } from "@/lib/constants"
+import { CustomerDetail, TransactionData } from "@/lib/types"
 import { toast } from "sonner"
 
-interface Transaction {
-  id: number
-  type: string
-  amount: number
-  description: string | null
-  date: string
-  createdAt: string
-}
-
-interface CustomerData {
-  id: number
-  name: string
-  phone: string | null
-  balance: number
-  createdAt: string
-  transactions: Transaction[]
-}
-
 interface Props {
-  customer: CustomerData
+  customer: CustomerDetail
+}
+
+function getTransactionLabel(type: string): string {
+  return type === TRANSACTION_TYPE.CREDIT ? "Compra no fiado" : "Pagamento"
+}
+
+function getTransactionSign(type: string): string {
+  return type === TRANSACTION_TYPE.CREDIT ? "+" : "-"
+}
+
+function getTransactionColor(type: string): string {
+  return type === TRANSACTION_TYPE.CREDIT ? "text-red-500" : "text-green-500"
 }
 
 export function CustomerDetailClient({ customer }: Props) {
@@ -92,7 +89,7 @@ export function CustomerDetailClient({ customer }: Props) {
                 : "text-green-600"
             }`}
           >
-            R$ {customer.balance.toFixed(2)}
+            {formatCurrency(customer.balance)}
           </p>
           <p className="mt-1 text-sm text-zinc-500">
             {customer.balance > 0
@@ -118,27 +115,21 @@ export function CustomerDetailClient({ customer }: Props) {
               Nenhuma transação registrada.
             </p>
           ) : (
-            customer.transactions.map((t) => (
+            customer.transactions.map((t: TransactionData) => (
               <div
                 key={t.id}
                 className="flex items-center justify-between py-3"
               >
                 <div>
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {t.description || (t.type === "credit" ? "Compra no fiado" : "Pagamento")}
+                    {t.description || getTransactionLabel(t.type)}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {new Date(t.date).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
-                <span
-                  className={`text-sm font-semibold ${
-                    t.type === "credit"
-                      ? "text-red-500"
-                      : "text-green-500"
-                  }`}
-                >
-                  {t.type === "credit" ? "+" : "-"} R$ {t.amount.toFixed(2)}
+                <span className={`text-sm font-semibold ${getTransactionColor(t.type)}`}>
+                  {getTransactionSign(t.type)} {formatCurrency(t.amount)}
                 </span>
               </div>
             ))
