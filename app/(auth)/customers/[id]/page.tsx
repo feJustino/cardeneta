@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { CustomerDetailClient } from "./CustomerDetailClient"
@@ -22,7 +23,7 @@ export default async function CustomerDetailPage({
     notFound()
   }
 
-  const balance = customer.transactions.reduce((acc, t) => {
+  const balance = customer.transactions.reduce((acc: number, t: { type: string; amount: any }) => {
     return t.type === "credit" ? acc + Number(t.amount) : acc - Number(t.amount)
   }, 0)
 
@@ -32,7 +33,7 @@ export default async function CustomerDetailPage({
     phone: customer.phone,
     balance,
     createdAt: customer.createdAt.toISOString(),
-    transactions: customer.transactions.map((t) => ({
+    transactions: customer.transactions.map((t: { amount: any; date: { toISOString: () => any }; createdAt: { toISOString: () => any } }) => ({
       ...t,
       amount: Number(t.amount),
       date: t.date.toISOString(),
