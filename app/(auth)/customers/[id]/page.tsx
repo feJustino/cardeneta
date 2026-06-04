@@ -33,8 +33,10 @@ export default async function CustomerDetailPage({
     phone: customer.phone,
     balance,
     createdAt: customer.createdAt.toISOString(),
-    transactions: customer.transactions.map((t: { amount: any; date: { toISOString: () => any }; createdAt: { toISOString: () => any } }) => ({
-      ...t,
+    transactions: customer.transactions.map((t: { id: number; type: string; description: string | null; amount: any; date: { toISOString: () => any }; createdAt: { toISOString: () => any } }) => ({
+      id: t.id,
+      type: t.type,
+      description: t.description,
       amount: Number(t.amount),
       date: t.date.toISOString(),
       createdAt: t.createdAt.toISOString(),
