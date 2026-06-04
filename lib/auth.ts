@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
     async signIn({ profile }) {
       const allowedEmail = process.env.ADMIN_EMAIL
       if (!allowedEmail) return false
-      return profile?.email === allowedEmail
+      return allowedEmail.includes(profile?.email || "")
     },
   },
   pages: {
