@@ -16,11 +16,11 @@ export default async function CustomersPage() {
     orderBy: { name: "asc" },
   })
 
-  const customersWithBalance = customers.map((c) => ({
+  const customersWithBalance = customers.map((c: any) => ({
     id: c.id,
     name: c.name,
     phone: c.phone,
-    balance: c.transactions.reduce((acc, t) => {
+    balance: c.transactions.reduce((acc: number, t: { type: string; amount: any }) => {
       return t.type === "credit" ? acc + Number(t.amount) : acc - Number(t.amount)
     }, 0),
     createdAt: c.createdAt.toISOString(),
