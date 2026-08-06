@@ -19,6 +19,31 @@ export function buildChargeMessage(
 }
 
 /**
+ * Valida se o telefone (caso informado) possui uma quantidade válida de dígitos.
+ * Aceita números com DDD (10 ou 11 dígitos) ou com DDI 55 (12 ou 13 dígitos).
+ */
+export function isValidPhone(phone: string): boolean {
+  if (!phone || !phone.trim()) return true
+  const digits = phone.replace(/\D/g, "")
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return true
+  }
+  return digits.length === 10 || digits.length === 11
+}
+
+/**
+ * Formata uma string de telefone no padrão brasileiro: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX.
+ */
+export function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11)
+  if (digits.length === 0) return ""
+  if (digits.length <= 2) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`
+}
+
+/**
  * Remove caracteres não-numéricos e adiciona DDI 55 (Brasil) se ausente.
  */
 export function normalizePhone(phone: string): string {
@@ -32,3 +57,4 @@ export function normalizePhone(phone: string): string {
 export function buildWhatsAppUrl(phone: string, message: string): string {
   return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`
 }
+

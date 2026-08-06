@@ -17,7 +17,7 @@ export default async function AuthLayout({
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 print:p-0 print:max-w-none">
         {children}
       </main>
     </>

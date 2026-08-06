@@ -7,6 +7,7 @@ import {
   ValidationError,
   NotFoundError,
 } from "@/lib/api"
+import { isValidPhone } from "@/lib/charge"
 
 async function getCustomerOrThrow(id: number) {
   const customer = await prisma.customer.findUnique({
@@ -55,6 +56,10 @@ export async function PUT(
 
     if (!body.name || body.name.trim() === "") {
       throw new ValidationError("Nome é obrigatório")
+    }
+
+    if (body.phone && body.phone.trim() !== "" && !isValidPhone(body.phone)) {
+      throw new ValidationError("Telefone inválido. Deve conter DDD + número (10 ou 11 dígitos)")
     }
 
     const customer = await prisma.customer.update({

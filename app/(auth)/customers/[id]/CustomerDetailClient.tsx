@@ -15,6 +15,11 @@ import {
   DEFAULT_CHARGE_MESSAGE,
   CHARGE_MESSAGE_KEY,
 } from "@/lib/charge"
+import {
+  getDefaultStartDate,
+  getDefaultEndDate,
+  validateDateRange,
+} from "@/lib/date"
 
 interface Props {
   customer: CustomerDetail
@@ -37,8 +42,19 @@ export function CustomerDetailClient({ customer }: Props) {
   const [deleting, setDeleting] = useState(false)
   const [sending, setSending] = useState(false)
 
+  const [startDate, setStartDate] = useState(getDefaultStartDate())
+  const [endDate, setEndDate] = useState(getDefaultEndDate())
+
+  const dateError = validateDateRange(startDate, endDate)
+
   const hasPhone = Boolean(customer.phone)
   const hasDebt = customer.balance > 0
+
+  const filteredTransactions = customer.transactions.filter((t) => {
+    if (dateError) return true
+    const tDate = t.date.slice(0, 10)
+    return tDate >= startDate && tDate <= endDate
+  })
 
   async function handleDelete() {
     if (!confirm(`Tem certeza que deseja excluir "${customer.name}"?`)) return
@@ -79,6 +95,18 @@ export function CustomerDetailClient({ customer }: Props) {
     } finally {
       setSending(false)
     }
+  }
+
+  function handlePrint() {
+    const err = validateDateRange(startDate, endDate)
+    if (err) {
+      toast.error(err)
+      return
+    }
+    window.open(
+      `/customers/${customer.id}/print?startDate=${startDate}&endDate=${endDate}`,
+      "_blank"
+    )
   }
 
   return (
@@ -145,15 +173,61 @@ export function CustomerDetailClient({ customer }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Transações</CardTitle>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Histórico de Transações</CardTitle>
+            <Button
+              variant="secondary"
+              onClick={handlePrint}
+              disabled={Boolean(dateError)}
+            >
+              Imprimir PDF
+            </Button>
+          </div>
         </CardHeader>
-        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-          {customer.transactions.length === 0 ? (
-            <p className="py-6 text-center text-sm text-zinc-500">
-              Nenhuma transação registrada.
+
+        <div className="mb-4 rounded-lg bg-zinc-50 p-3.5 dark:bg-zinc-800/50">
+          <div className="flex flex-col sm:flex-row items-end gap-3">
+            <div className="w-full sm:w-auto flex-1">
+              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                Data Inicial
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+            </div>
+            <div className="w-full sm:w-auto flex-1">
+              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                Data Final
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+            </div>
+          </div>
+          {dateError ? (
+            <p className="mt-2 text-xs font-medium text-red-500">
+              {dateError}
             </p>
           ) : (
-            customer.transactions.map((t: TransactionData) => (
+            <p className="mt-2 text-xs text-zinc-400">
+              Período de filtro máximo de 3 meses para a geração do relatório em PDF.
+            </p>
+          )}
+        </div>
+
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          {filteredTransactions.length === 0 ? (
+            <p className="py-6 text-center text-sm text-zinc-500">
+              Nenhuma transação registrada no período selecionado.
+            </p>
+          ) : (
+            filteredTransactions.map((t: TransactionData) => (
               <div
                 key={t.id}
                 className="flex items-center justify-between py-3"
@@ -186,3 +260,4 @@ export function CustomerDetailClient({ customer }: Props) {
     </div>
   )
 }
+
