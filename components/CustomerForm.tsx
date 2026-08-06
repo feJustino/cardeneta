@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Input } from "./ui/Input"
 import { Button } from "./ui/Button"
 import { toast } from "sonner"
+import { isValidPhone, formatPhone } from "@/lib/charge"
 
 interface CustomerFormProps {
   initialData?: { name: string; phone: string | null }
@@ -14,18 +15,35 @@ interface CustomerFormProps {
 export function CustomerForm({ initialData, customerId }: CustomerFormProps) {
   const router = useRouter()
   const [name, setName] = useState(initialData?.name || "")
-  const [phone, setPhone] = useState(initialData?.phone || "")
+  const [phone, setPhone] = useState(initialData?.phone ? formatPhone(initialData.phone) : "")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [nameError, setNameError] = useState("")
+  const [phoneError, setPhoneError] = useState("")
+
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatPhone(e.target.value)
+    setPhone(formatted)
+    if (phoneError) setPhoneError("")
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError("")
+    setNameError("")
+    setPhoneError("")
+
+    let hasError = false
 
     if (!name.trim()) {
-      setError("O nome é obrigatório")
-      return
+      setNameError("O nome é obrigatório")
+      hasError = true
     }
+
+    if (phone.trim() && !isValidPhone(phone)) {
+      setPhoneError("Telefone inválido. Digite o DDD + número (10 ou 11 dígitos)")
+      hasError = true
+    }
+
+    if (hasError) return
 
     setLoading(true)
 
@@ -48,7 +66,7 @@ export function CustomerForm({ initialData, customerId }: CustomerFormProps) {
       router.push("/customers")
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar")
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar")
     } finally {
       setLoading(false)
     }
@@ -59,17 +77,21 @@ export function CustomerForm({ initialData, customerId }: CustomerFormProps) {
       <Input
         label="Nome completo"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value)
+          if (nameError) setNameError("")
+        }}
         placeholder="Ex: José da Silva"
-        error={error}
+        error={nameError}
         required
       />
       <Input
         label="Telefone (opcional)"
         value={phone}
-        onChange={(e) => setPhone(e.target.value)}
+        onChange={handlePhoneChange}
         placeholder="Ex: (11) 99999-9999"
         type="tel"
+        error={phoneError}
       />
       <div className="flex gap-3">
         <Button type="submit" isLoading={loading}>
@@ -82,3 +104,4 @@ export function CustomerForm({ initialData, customerId }: CustomerFormProps) {
     </form>
   )
 }
+
