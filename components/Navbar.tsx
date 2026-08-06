@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/customers", label: "Clientes" },
   { href: "/transactions/new", label: "Nova Compra" },
   { href: "/payments/new", label: "Novo Pagamento" },
+  { href: "/settings", label: "Configurações" },
 ] as const
 
 function NavLink({ href, label, isActive }: { href: string; label: string; isActive: boolean }) {

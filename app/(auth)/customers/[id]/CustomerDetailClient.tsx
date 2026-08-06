@@ -9,6 +9,12 @@ import { formatCurrency } from "@/lib/balance"
 import { TRANSACTION_TYPE } from "@/lib/constants"
 import { CustomerDetail, TransactionData } from "@/lib/types"
 import { toast } from "sonner"
+import {
+  buildChargeMessage,
+  buildWhatsAppUrl,
+  DEFAULT_CHARGE_MESSAGE,
+  CHARGE_MESSAGE_KEY,
+} from "@/lib/charge"
 
 interface Props {
   customer: CustomerDetail
@@ -29,6 +35,10 @@ function getTransactionColor(type: string): string {
 export function CustomerDetailClient({ customer }: Props) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  const hasPhone = Boolean(customer.phone)
+  const hasDebt = customer.balance > 0
 
   async function handleDelete() {
     if (!confirm(`Tem certeza que deseja excluir "${customer.name}"?`)) return
@@ -54,6 +64,23 @@ export function CustomerDetailClient({ customer }: Props) {
     }
   }
 
+  async function handleSendCharge() {
+    if (!hasPhone) return
+    setSending(true)
+    try {
+      const res = await fetch(`/api/settings?key=${CHARGE_MESSAGE_KEY}`)
+      const { value } = await res.json()
+      const template = value || DEFAULT_CHARGE_MESSAGE
+      const message = buildChargeMessage(template, customer.name, customer.balance)
+      const url = buildWhatsAppUrl(customer.phone!, message)
+      window.open(url, "_blank")
+    } catch {
+      toast.error("Erro ao preparar mensagem de cobrança")
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -66,6 +93,17 @@ export function CustomerDetailClient({ customer }: Props) {
           )}
         </div>
         <div className="flex gap-2">
+          {hasDebt && (
+            <Button
+              variant="secondary"
+              onClick={handleSendCharge}
+              isLoading={sending}
+              disabled={!hasPhone}
+              title={!hasPhone ? "Cadastre um telefone para enviar cobrança" : undefined}
+            >
+              Enviar cobrança
+            </Button>
+          )}
           <Link href={`/customers/${customer.id}/edit`}>
             <Button variant="secondary">Editar</Button>
           </Link>
